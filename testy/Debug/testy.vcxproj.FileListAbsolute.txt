@@ -1,0 +1,2 @@
+D:\repos\netops\testy\Debug\testy.exe
+D:\repos\netops\testy\Debug\testy.pdb

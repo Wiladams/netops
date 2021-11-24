@@ -1,0 +1,6 @@
+﻿  netapp.cpp
+  test_iphost.cpp
+D:\repos\netops\testy\test_iphost\test_iphost.cpp(31,20): warning C4018: '<': signed/unsigned mismatch
+  Generating Code...
+D:\repos\netops\src\network.h(136): warning C4715: 'IPHost::init': not all control paths return a value
+  test_iphost.vcxproj -> D:\repos\netops\testy\Debug\test_iphost.exe
