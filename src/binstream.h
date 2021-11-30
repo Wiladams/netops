@@ -12,7 +12,8 @@
 */
 
 #include <stdint.h>
-#include <string.h>
+#include <cstring>
+#include <tuple>
 
 // Define this here instead of using MIN to
 // reduce dependencies
@@ -32,7 +33,7 @@ typedef union {
 // Basic interface for reading 8-bit values from a source
 class IReadBinary
 {
-    virtual uint8_t readOctet() = 0;
+    virtual std::tuple<int,uint8_t> readOctet() = 0;
 };
 
 // Basic interface for writing 8-bit values to a destination
@@ -51,21 +52,24 @@ class BinStream : public IReadBinary, public IWriteBinary
     uint8_t *fdata;
     size_t fsize;
     size_t fcursor;
+
     bool fbigend;
 
 protected:
-    BinStream() 
+
+
+public:
+    BinStream()
         : fdata(nullptr),
         fbigend(false),
         fcursor(0),
         fsize(0)
     {}
 
-public:
-
     BinStream(void *data, const size_t size, size_t position=0, bool littleendian = true)
         : fbigend(!littleendian),
         fcursor(position),
+
         fdata((uint8_t *)data),
         fsize(size)
     {}
@@ -85,6 +89,8 @@ public:
     uint8_t * data() {return fdata;}
     size_t size() {return fsize;}
     
+
+
     // report how many bytes remain to be read
     // from stream
     size_t remaining() {return fsize - fcursor;}
@@ -190,20 +196,22 @@ public:
     }
 
 
+    //
     // get 8 bits, and advance the cursor
-    uint8_t readOctet()
+    //
+    std::tuple<int,uint8_t> readOctet()
     {
         //print("self.cursor: ", self.cursor, self.size)
         if (fcursor >= fsize) {
-            // BUGBUG - throw exception
-            return 0;
+            // return EOF error
+            return std::make_tuple(-1, 0);
         }
 
         fcursor = fcursor + 1;
 
         //printf("readOctet() - fcursor: %d\n", fcursor);
         
-        return fdata[fcursor-1];
+        return std::make_tuple(0,fdata[fcursor-1]);
     }
 
     // readBytes
@@ -246,7 +254,16 @@ public:
         size_t nActual = BINMIN(n-1, remaining());
         size_t idx = 0;
         while (idx < nActual) {
-            buff[idx] = readOctet();
+            // Read a byte
+            // if there was an error, terminate string
+            auto [error, value]  = readOctet();
+            buff[idx] = value;
+            if (error != 0)
+            {
+                buff[idx] = 0;
+            }
+
+            // upon error or null termination, break out of loop
             if (buff[idx] == 0) {
                 break;
             }
@@ -254,8 +271,6 @@ public:
             idx = idx + 1;
         }
 
-        // ensure null termination
-        buff[idx] = 0;
 
         return idx;
     }
@@ -331,12 +346,15 @@ size_t readLine(char* buff, const size_t bufflen)
 
         if (fbigend) {
             while  (i < n) {
-                v = ((v<< 8) | readOctet());
+                auto [error, value] = readOctet();
+                v = ((v<< 8) | value);
                 i = i + 1;
             }
         } else {
             while  (i < n) {
-                v = (v | (readOctet() << 8*i));
+                auto [error, value] = readOctet();
+
+                v = (v | (value << 8*i));
                 i = i + 1;
             }
         }
@@ -508,7 +526,7 @@ size_t readLine(char* buff, const size_t bufflen)
     }
 
     // Convenient names used in various documentation
-    uint8_t readBYTE() {return readOctet();}
+    uint8_t readBYTE() { auto [error, value] = readOctet(); return value; }
     uint16_t readWORD() {return readUInt16();}
     uint32_t readDWORD() {return  readUInt32();}
     int32_t readLONG() {return readInt32();}

@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testy", "testy.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_iphost", "test_iphost\test_iphost.vcxproj", "{834B85CA-66DB-408D-9009-917E18C067BC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "httping", "httping\httping.vcxproj", "{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{834B85CA-66DB-408D-9009-917E18C067BC}.Release|x64.Build.0 = Release|x64
 		{834B85CA-66DB-408D-9009-917E18C067BC}.Release|x86.ActiveCfg = Release|Win32
 		{834B85CA-66DB-408D-9009-917E18C067BC}.Release|x86.Build.0 = Release|Win32
+		{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}.Debug|x64.ActiveCfg = Debug|x64
+		{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}.Debug|x64.Build.0 = Debug|x64
+		{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}.Debug|x86.ActiveCfg = Debug|Win32
+		{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}.Debug|x86.Build.0 = Debug|Win32
+		{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}.Release|x64.ActiveCfg = Release|x64
+		{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}.Release|x64.Build.0 = Release|x64
+		{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}.Release|x86.ActiveCfg = Release|Win32
+		{CBFABB1F-19FD-48C2-8CB8-F1AE6AAC91B6}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

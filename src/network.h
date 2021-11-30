@@ -20,17 +20,18 @@ https://www.winsocketdotnetworkprogramming.com/winsock2programming/winsock2advan
 #include <ws2tcpip.h>
 #include <MSWSock.h>
 
+#include <tuple>
 
-struct IPAddress {
-private:
-    IPAddress() = delete;   // don't allow default constructor
-
+struct IPAddress
+{
 public:
-    //struct sockaddr_in* sockaddr_ipv4;
-    //LPSOCKADDR sockaddr_ip;
-
     struct sockaddr fAddress;
     int fAddressLength;
+
+    IPAddress()
+        :fAddress{ 0 },
+        fAddressLength(0)
+    {}
 
     // Copy constructor
     IPAddress(const IPAddress& other)
@@ -83,17 +84,42 @@ public:
 
 };
 
+//
+// IPHost
+// A representation of a machine on a network.
+// In order to get an address that you can connect to, you 
+// need to start with identifying a host.
+// When identifying a host, you must specify an address (name or numeric)
+// a socket type, family, protocol, and a port
+//  
 class IPHost {
     bool fIsValid = false;
     char fHostName[1024];
     std::vector<IPAddress> fAddresses;
     std::vector<char *> fAliases;
 
+public:
+    // Constructors
+    // I want to see if a default constructor is actually ever needed
+    // It would be better if it's not required, because then you'll
+    // have to use init().
+    IPHost() = delete;
+    //    :fIsValid(false),
+    //    fHostName{ 0 }
+    //{}
+
+    IPHost(const char* hostname, const char* portname, int socktype = SOCK_STREAM, int family = AF_INET, int flags = AI_CANONNAME)
+    {
+        fIsValid = init(hostname, portname, socktype, family, flags);
+    }
+
+    // It would be better if init is not needed as a public function
     bool init(const char* hostname, const char* portname, int socktype, int family, int flags)
     {
         int err;
         addrinfo hints;
         struct addrinfo* ppResult;
+        fIsValid = false;
 
         // need to zero out some members before using
         memset(&hints, 0, sizeof(hints));
@@ -103,15 +129,14 @@ class IPHost {
         hints.ai_protocol = IPPROTO_TCP;
         hints.ai_flags = flags; // AI_CANONNAME;    // hostname is a canonical name
 
-
-
         err = getaddrinfo(hostname, portname, &hints, &ppResult);
 
         if (err != 0) {
             printf("IPHost.create(), getaddrinfo ERROR: %d\n", WSAGetLastError());
-            return false;
+            return fIsValid;
         }
 
+        fIsValid = true;
 
         // Add initial name and address
         this->setName(ppResult->ai_canonname);
@@ -133,14 +158,11 @@ class IPHost {
 
         // free the addrinfos structure
         freeaddrinfo(ppResult);
+
+        return fIsValid;
     }
 
-public:
-    IPHost(const char* hostname, const char* portname, int socktype = SOCK_STREAM, int family = AF_INET, int flags = AI_CANONNAME)
-    {
-        init(hostname, portname, socktype, family, flags);
-    }
-
+    bool isValid() { return fIsValid; }
     void setName(const char *name)
     {
         if (name == nullptr) {
@@ -192,7 +214,6 @@ public:
 //
 class ASocket {
 protected:
-    SOCKET fSocket;
 
     // Retrieve a pointer to an extension function
     // These functions are implementation specific
@@ -293,9 +314,18 @@ protected:
 private:
     bool fIsValid;
     int fLastError;
-    bool fAutoClose;
+    bool fAutoClose; // for a value type, need to not close on destructor
 
 public:
+    SOCKET fSocket;
+
+public:
+    // Default constructor will initially be invalid
+    ASocket()
+        : ASocket(INVALID_SOCKET, false)
+    {
+    }
+
     // Construct with an existing native socket
     ASocket(SOCKET s, const bool autoclose)
         : fSocket(s),
@@ -305,15 +335,12 @@ public:
         fIsValid = (s != INVALID_SOCKET);
     }
     
-    // Default constructor will initially be invalid
-    ASocket()
-        : ASocket(INVALID_SOCKET, false)
-    {
-    }
+
 
     // Construct a particular kind of socket
-    ASocket(int family, int socktype, int protocol)
-        : fIsValid(false)
+    ASocket(int family, int socktype, int protocol, const bool autoclose)
+        : fIsValid(false),
+        fAutoClose(autoclose)
     {
         fSocket = WSASocketA(family, socktype, protocol, nullptr, 0, 0);
         init(fSocket);
@@ -377,7 +404,6 @@ public:
     }
 
     // Convenient commands used with ioctl
-
     //
     // Async implies the usage of iocompletion ports
     bool setAsync()
@@ -394,20 +420,6 @@ public:
 
     // non-blocking just means you'll have to come
     // back later to see if there's any data
-    int getLastError()
-    {
-        int optValue;
-        int optSize = sizeof(int);
-        int size = sizeof(int);
-
-        bool success = getSocketOption(SOL_SOCKET, SO_ERROR, (char *)&optValue, optSize);
-
-        if (success)
-            return optValue;
-
-        return 0;
-    }
-
     bool setBlocking()
     {
         unsigned long param = 0;
@@ -420,7 +432,26 @@ public:
         return (0 == ioctl(FIONBIO, &param));
     }
 
+    //
     // Convenient Commands used with socket options
+    // getLastError()
+    // returns the last error associated with the socket
+    int getLastError()
+    {
+        int optValue;
+        int optSize = sizeof(int);
+        int size = sizeof(int);
+
+        bool success = getSocketOption(SOL_SOCKET, SO_ERROR, (char*)&optValue, optSize);
+
+        if (success)
+            return optValue;
+
+        return 0;
+    }
+
+
+
     bool setExclusiveAddress()
     {
         int oneInt = 1;
@@ -431,6 +462,30 @@ public:
     {
         int oneInt = 0;
         return setSocketOption(SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&oneInt, sizeof(oneInt));
+    }
+
+    int getReceiveBufferSize()
+    {
+        int optValue;
+        int optSize = sizeof(int);
+        bool success = getSocketOption(SOL_SOCKET, SO_RCVBUF, (char *)&optValue, optSize);
+
+        if (success)
+            return optValue;
+
+        return 0;
+    }
+
+    int getSendBufferSize()
+    {
+        int optValue;
+        int optSize = sizeof(int);
+        bool success = getSocketOption(SOL_SOCKET, SO_SNDBUF, (char*)&optValue, optSize);
+
+        if (success)
+            return optValue;
+
+        return 0;
     }
 
     bool setReuseAddress()
@@ -516,19 +571,32 @@ public:
 
     // Send a chunk of memory
     // return the number of octets sent
-    int send(const char* buff, const int bufflen, const int f = 0)
+    std::tuple<int, int> send(const char* buff, const int bufflen, const int f = 0)
     {
         int len = bufflen;
         int flags = f;
 
-        return ::send(fSocket, buff, len, flags);
+        int res = ::send(fSocket, buff, len, flags);
+
+        if (res == SOCKET_ERROR) {
+            int err = WSAGetLastError();
+            return std::make_tuple(err, 0);
+        }
+
+        return std::make_tuple(0, res);
     }
 
     // receive a chunk of memmory
     // return number of octets received
-    int recv(char* buff, int len, int flags = 0)
+    std::tuple<int, int> recv(char* buff, int len, int flags = 0)
     {
-        return ::recv(fSocket, buff, len, flags);
+        int res = ::recv(fSocket, buff, len, flags);
+        if (res == SOCKET_ERROR) {
+            int err = WSAGetLastError();
+            return std::make_tuple(err, 0);
+        }
+
+        return std::make_tuple(0, res);
     }
 
 
@@ -572,6 +640,24 @@ private:
 class TcpSocket : public ASocket
 {
 public :
+    //
+// getConnectionTime
+// Returns the number of seconds a socket has been connected
+// this is only appropriate for connection oriented sockets
+// such as tcp
+    int getConnectionTime()
+    {
+        int optValue;
+        int optSize = sizeof(int);
+
+        bool success = getSocketOption(SOL_SOCKET, SO_CONNECT_TIME, (char*)optValue, optSize);
+
+        if (!success)
+            return 0;
+
+        return optValue;
+    }
+
     // Nagle's algorithm, uses some delay to ensure we don't send a ton
     // of tiny packets.  Packets are accumulated until some threshold, then
     // sent.

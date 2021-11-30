@@ -1,0 +1,8 @@
+﻿  httping.cpp
+     Creating library D:\repos\netops\testy\Release\httping.lib and object D:\repos\netops\testy\Release\httping.exp
+  Generating code
+  6 of 215 functions ( 2.8%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  httping.vcxproj -> D:\repos\netops\testy\Release\httping.exe

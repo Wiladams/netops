@@ -1,0 +1,7 @@
+﻿  httping.cpp
+D:\repos\netops\src\binstream.h(160,52): warning C4244: 'argument': conversion from 'int64_t' to 'const size_t', possible loss of data
+D:\repos\netops\src\binstream.h(323,16): warning C4244: 'initializing': conversion from 'int64_t' to 'size_t', possible loss of data
+D:\repos\netops\src\binstream.h(342,25): warning C4018: '<': signed/unsigned mismatch
+D:\repos\netops\src\netstream.h(146,17): warning C4018: '<': signed/unsigned mismatch
+D:\repos\netops\src\netstream.h(112): warning C4715: 'NetStream::refillReadingBuffer': not all control paths return a value
+  httping.vcxproj -> D:\repos\netops\testy\Debug\httping.exe
