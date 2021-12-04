@@ -55,6 +55,7 @@ public:
 	// as well
 	void readHeaders(NetStream& ns)
 	{
+		std::string prevname;
 
 		while (true) {
 			auto [error, size] = ns.readOneLine(lineBuffer, lineBufferSize);
@@ -71,19 +72,23 @@ public:
 			if (nullptr == ret)
 			{
 				// no colon, so append to previous header
+				if (prevname != std::string())
+					appendHeader(prevname, lineBuffer);
 			}
 			else
 			{
-				// We have a name and a value
+				// We have a name separating a value with a colon
 				int len = ret - lineBuffer;
 				std::string name(lineBuffer, len);
 				ret++;
 				std::string value(ret);
 				
 				// turn the name field into lowercase while
-				// and trim it we're at it.
+				// trimming it at the same time
 				strutils::trim(name);
 				strutils::tolower(name);
+
+				prevname = name;
 
 				// trim leading and trailing whitespace from value
 				strutils::trim(value);

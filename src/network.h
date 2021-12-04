@@ -518,10 +518,15 @@ public:
         return ASocket(res, false);
     }
 
-    int bindTo(const sockaddr *addr, const int addrLen)
+    int bindTo(IPAddress &addr)
     {
-        return ::bind(fSocket, addr, addrLen);
+        return ::bind(fSocket, &addr.fAddress, addr.fAddressLength);
     }
+
+    //int bindTo(const sockaddr *addr, const int addrLen)
+    //{
+    //    return ::bind(fSocket, addr, addrLen);
+    //}
 
     // Closing a socket should include a shutdown
     // so the socket isn't lingering

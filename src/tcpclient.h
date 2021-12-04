@@ -100,13 +100,12 @@ public:
     // return number of bytes actually sent
     int send(const char *buff, const int buffLen, int flags = 0)
     {
+        int buffOffset = 0;
 
-        int bytesTransferred = 0;
-
-        while (bytesTransferred < buffLen) {
+        while (buffOffset < buffLen) {
             // do this send in a loop, because
             // it may not all get sent in one call
-            auto [error, bytesTrans] = fSocket.send(buff, buffLen, flags);
+            auto [error, bytesTrans] = fSocket.send(buff+buffOffset, buffLen-buffOffset, flags);
 
             if (error != 0) {
                 // depends on what kind of error we encounter
@@ -117,11 +116,13 @@ public:
             }
             else {
                 // increment number of bytes sent
-                bytesTransferred += bytesTrans;
+                buffOffset += bytesTrans;
             }
+
+
         }
 
-        return bytesTransferred;
+        return buffOffset;
     }
 
     //

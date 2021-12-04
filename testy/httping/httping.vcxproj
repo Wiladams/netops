@@ -150,6 +150,7 @@
     <ClInclude Include="..\..\src\netstream.h" />
     <ClInclude Include="..\..\src\network.h" />
     <ClInclude Include="..\..\src\strutils.h" />
+    <ClInclude Include="..\..\src\tcpclient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
