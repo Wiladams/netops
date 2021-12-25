@@ -6,7 +6,7 @@ using SocketTopic = Topic<ASocket>;
 
 SocketTopic acceptClientTopic;
 
-void handleAcceptClient(acceptClientTopic::)
+//void handleAcceptClient(acceptClientTopic::)
 void onLoad()
 {
 	// Do whatever we want before the 
@@ -15,7 +15,7 @@ void onLoad()
 
 ASocket createServer()
 {
-	ASocket srvsock(AF_INET, SOCK_STREAM, IPPROTO_TCP, false);
+	ASocket srvsock(SOCK_STREAM, AF_INET,  IPPROTO_TCP, false);
 
 	//srvsock.setNoDelay();
 	srvsock.setReuseAddress();

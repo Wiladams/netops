@@ -199,6 +199,20 @@ public:
     //
     // get 8 bits, and advance the cursor
     //
+    // read an unsigned 8-bit value
+    // a byte has a value of 0 - 255, so any error
+    // will return -1
+    int readByte()
+    {
+        if (fcursor >= fsize) {
+            return -1;
+        }
+
+        fcursor = fcursor + 1;
+
+        return fdata[fcursor - 1];
+    }
+
     std::tuple<int,uint8_t> readOctet()
     {
         //print("self.cursor: ", self.cursor, self.size)
@@ -402,8 +416,14 @@ size_t readLine(char* buff, const size_t bufflen)
     /*
         Writing to a binary stream
     */
+    inline void writeByte(const uint8_t octet)
+    {
+        fdata[fcursor] = octet;
+        fcursor = fcursor + 1;
+    }
+
     // Write a single octet to the stream
-    bool writeOctet(const uint8_t octet)
+    inline bool writeOctet(const uint8_t octet)
     {
         // if we're already at capacity, then fail
         if (fcursor >= fsize) {

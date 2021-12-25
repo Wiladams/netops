@@ -16,7 +16,7 @@
 #include <intrin.h>
 
 #include "bitbang.h"
-#include "maths.hpp"
+#include "maths.h"
 #include "pixelmap.h"
 
 #pragma intrinsic(__stosd)

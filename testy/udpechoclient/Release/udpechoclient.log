@@ -1,0 +1,8 @@
+﻿  udpechoclient.cpp
+     Creating library D:\repos\netops\testy\Release\udpechoclient.lib and object D:\repos\netops\testy\Release\udpechoclient.exp
+  Generating code
+  1 of 206 functions ( 0.5%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    3 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  udpechoclient.vcxproj -> D:\repos\netops\testy\Release\udpechoclient.exe

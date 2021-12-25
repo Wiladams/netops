@@ -1,0 +1,9 @@
+﻿  netapp.cpp
+  pgmspeaker.cpp
+     Creating library D:\repos\netops\testy\Release\pgmspeaker.lib and object D:\repos\netops\testy\Release\pgmspeaker.exp
+  Generating code
+  3 of 157 functions ( 1.9%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  pgmspeaker.vcxproj -> D:\repos\netops\testy\Release\pgmspeaker.exe

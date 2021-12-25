@@ -1,0 +1,9 @@
+﻿  netapp.cpp
+  udpechoserver.cpp
+     Creating library D:\repos\netops\testy\Release\udpechoserver.lib and object D:\repos\netops\testy\Release\udpechoserver.exp
+  Generating code
+  5 of 127 functions ( 3.9%) were compiled, the rest were copied from previous compilation.
+    1 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  udpechoserver.vcxproj -> D:\repos\netops\testy\Release\udpechoserver.exe

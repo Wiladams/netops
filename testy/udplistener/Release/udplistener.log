@@ -1,0 +1,9 @@
+﻿  netapp.cpp
+  udplistener.cpp
+     Creating library D:\repos\netops\testy\Release\udplistener.lib and object D:\repos\netops\testy\Release\udplistener.exp
+  Generating code
+  5 of 130 functions ( 3.8%) were compiled, the rest were copied from previous compilation.
+    4 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  udplistener.vcxproj -> D:\repos\netops\testy\Release\udplistener.exe

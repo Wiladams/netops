@@ -28,18 +28,25 @@ public:
     struct sockaddr fAddress;
     int fAddressLength;
 
+
+
     IPAddress()
         :fAddress{ 0 },
         fAddressLength(0)
-    {}
+    {
+        reset();
+    }
 
     // Copy constructor
     IPAddress(const IPAddress& other)
         :fAddressLength(0)
     {
         ZeroMemory(&fAddress, sizeof(fAddress));
+        
+        if (other.fAddressLength > sizeof(fAddress))
+            return;
 
-        memcpy(&fAddress, &other.fAddress, sizeof(fAddress));
+        memcpy(&fAddress, &other.fAddress, other.fAddressLength);
         fAddressLength = other.fAddressLength;
     }
 
@@ -54,6 +61,14 @@ public:
 
         memcpy(&fAddress, addr, addrLen);
         fAddressLength = addrLen;
+    }
+
+
+
+    void reset()
+    {
+        ZeroMemory(&fAddress, sizeof(fAddress));
+        fAddressLength = sizeof(fAddress);
     }
 
     ~IPAddress()
@@ -82,6 +97,28 @@ public:
         return consumedLength;
     }
 
+};
+
+struct IPV4Address : public IPAddress
+{
+    // ipaddr - INADDR_ANY
+    IPV4Address(unsigned long ipaddr, uint16_t portnum,   int family = AF_INET)
+    {
+        struct sockaddr_in * addr = (struct sockaddr_in*)(&fAddress);
+        addr->sin_family = family;
+        addr->sin_addr.S_un.S_addr = htonl(ipaddr);
+        addr->sin_port = htons(portnum);
+        fAddressLength = sizeof(struct sockaddr_in);
+    }
+
+    IPV4Address(const char* ipname, uint16_t portnum,  int family = AF_INET)
+    {
+        struct sockaddr_in* addr = (struct sockaddr_in*)(&fAddress);
+        addr->sin_family = family;
+        addr->sin_addr.S_un.S_addr = inet_addr(ipname);
+        addr->sin_port = htons(portnum);
+        fAddressLength = sizeof(struct sockaddr_in);
+    }
 };
 
 //
@@ -213,117 +250,24 @@ public:
 
 //
 class ASocket {
-protected:
-
-    // Retrieve a pointer to an extension function
-    // These functions are implementation specific
-    // so there's no other way to gain access to them without
-    // going through ws2_32
-    static void* getExtensionFunctionPointer(GUID &funcguid)
-    {
-        ASocket s;
-        int cbInBuffer = sizeof(GUID);
-        void* lpvOutBuffer = nullptr;
-        int cbOutBuffer=sizeof(lpvOutBuffer);
-        DWORD lpcbBytesReturned = 0;
-        LPWSAOVERLAPPED lpOverlapped = nullptr;
-        LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine  = nullptr;
-
-        int res = WSAIoctl(s.fSocket, SIO_GET_EXTENSION_FUNCTION_POINTER,
-            (void *)&funcguid, cbInBuffer, 
-            lpvOutBuffer, cbOutBuffer,
-            &lpcbBytesReturned,
-            lpOverlapped,
-            lpCompletionRoutine);
-
-        if (res != 0)
-            return nullptr;
-
-        return lpvOutBuffer;
-    }
-
-    // Extended Accept
-    static int AcceptEx(ASocket listenSocket, ASocket acceptedSocket)
-    {
-        static LPFN_ACCEPTEX CAcceptEx = nullptr;
-
-        if (nullptr == CAcceptEx)
-        {
-            GUID g = WSAID_ACCEPTEX;
-            CAcceptEx = (LPFN_ACCEPTEX)getExtensionFunctionPointer(g);
-        }
-
-        // Call extension function
-        //lpOutputBuffer
-        DWORD    lpBytesReceived = 0;
-        void *lpOutputBuffer= nullptr;
-        DWORD dwReceiveDataLength=0;
-        DWORD dwLocalAddressLength=0;
-        DWORD dwRemoteAddressLength=0;
-        DWORD lpdwBytesReceived;
-        LPOVERLAPPED lpOverlapped=nullptr;
-
-        int res = CAcceptEx(listenSocket.fSocket, acceptedSocket.fSocket,
-            lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength,
-            dwRemoteAddressLength, &lpdwBytesReceived,
-            lpOverlapped);
-
-        return res;
-    }
-    
-    static int ConnectEx(ASocket s, IPAddress address)
-    {
-        LPFN_CONNECTEX CConnectEx = nullptr;
-
-        if (CConnectEx == nullptr) {
-            GUID g = WSAID_CONNECTEX;
-            CConnectEx = (LPFN_CONNECTEX)getExtensionFunctionPointer(g);
-        }
-
-        if (nullptr == CConnectEx)
-            return -1;
-
-        void* lpSendBuffer = nullptr;
-        DWORD dwSendDataLength = 0;
-        DWORD lpdwBytesSent = 0;
-        LPOVERLAPPED lpOverlapped = nullptr;
-
-        CConnectEx(s.fSocket, &address.fAddress, address.fAddressLength,
-            lpSendBuffer, dwSendDataLength,
-            &lpdwBytesSent, lpOverlapped);
-    }
-
-    static int DisconnectEx(ASocket s)
-    {
-        static LPFN_DISCONNECTEX CDisconnectEx = nullptr;
-
-        if (nullptr == DisconnectEx)
-        {
-            GUID g = WSAID_DISCONNECTEX;
-            CDisconnectEx = (LPFN_DISCONNECTEX)getExtensionFunctionPointer(g);
-        }
-
-        LPOVERLAPPED lpOverlapped = nullptr;
-        DWORD dwFlags = 0;
-        DWORD dwReserved = 0;
-        int res = CDisconnectEx(s.fSocket, lpOverlapped, dwFlags, dwReserved);
-
-        return res;
-    }
-
 private:
     bool fIsValid;
-    int fLastError;
     bool fAutoClose; // for a value type, need to not close on destructor
 
 public:
     SOCKET fSocket;
+    int fLastError;
 
 public:
     // Default constructor will initially be invalid
+    // You can default construct a socket,
+    // the use init() to initialize it
     ASocket()
         : ASocket(INVALID_SOCKET, false)
     {
+        fSocket = INVALID_SOCKET;
+        fAutoClose = false;
+        fIsValid = false;
     }
 
     // Construct with an existing native socket
@@ -338,12 +282,17 @@ public:
 
 
     // Construct a particular kind of socket
-    ASocket(int family, int socktype, int protocol, const bool autoclose)
-        : fIsValid(false),
+    // socktype - SOCK_STREAM, SOCK_DGRAM
+    // family   - AF_INET
+    // protocol - IPPROTO_IP
+    //
+    ASocket(int socktype, int family, int protocol, const bool autoclose)
+        :fSocket(INVALID_SOCKET),
+        fIsValid(false),
         fAutoClose(autoclose)
     {
-        fSocket = WSASocketA(family, socktype, protocol, nullptr, 0, 0);
-        init(fSocket);
+        //printf("ASocket::constructor\n");
+        init(WSASocketA(family, socktype, protocol, nullptr, 0, 0), autoclose);
     }
 
     // There should be a flag to autoclose
@@ -355,13 +304,32 @@ public:
         }
     }
 
-    void init(SOCKET sock, bool autoclose=false)
+    bool init(int family, int socktype, int protocol, const bool autoclose)
+    {
+        fSocket = WSASocketA(family, socktype, protocol, nullptr, 0, 0);
+        fAutoClose = autoclose;
+
+        if (INVALID_SOCKET == fSocket) {
+            fIsValid = false;
+            fLastError = WSAGetLastError();
+            return false;
+        }
+        
+        fIsValid = true;
+
+        return true;
+    }
+
+    virtual void init(SOCKET sock, bool autoclose=false)
     {
         fIsValid = false;
         fSocket = sock;
 
-        if (fSocket == INVALID_SOCKET) {
+        if (INVALID_SOCKET == fSocket) 
+        {
             fLastError = WSAGetLastError();
+            printf("ASocket.init error: %d\n", fLastError);
+
             return;
         }
 
@@ -393,7 +361,7 @@ public:
         return false;
     }
 
-    bool setSocketOption(int level, int optname, const char* optval, int optlen)
+    bool setSocketOption(int level, int optname, const char* optval, uint32_t optlen)
     {
         int res = setsockopt(fSocket, level, optname, optval, optlen);
         if (res == 0)
@@ -450,7 +418,19 @@ public:
         return 0;
     }
 
+    // broadcast - give permission for socket to do broadcasts
+    //
+    virtual bool setBroadcast()
+    {
+        uint32_t oneInt = 1;
+        return setSocketOption(SOL_SOCKET, SO_BROADCAST, (char*)&oneInt, sizeof(oneInt));
+    }
 
+    virtual bool setNoBroadcast()
+    {
+        uint32_t oneInt = 0;
+        return setSocketOption(SOL_SOCKET, SO_BROADCAST, (char*)&oneInt, sizeof(oneInt));
+    }
 
     bool setExclusiveAddress()
     {
@@ -505,10 +485,10 @@ public:
     // Standard Interface
     ASocket accept()
     {
-        //struct sockaddr clientAddr;
-        //int clientAddrLen=0;
-        //int res = ::accept(fSocket,&clientAddr,&clientAddrLen);
-        int res = ::accept(fSocket,nullptr,nullptr);
+        struct sockaddr clientAddr;
+        int clientAddrLen=sizeof(clientAddr);
+        int res = ::accept(fSocket,&clientAddr,&clientAddrLen);
+        //int res = ::accept(fSocket,nullptr,nullptr);
 
         if (res == INVALID_SOCKET) {
             fLastError = WSAGetLastError();
@@ -518,9 +498,15 @@ public:
         return ASocket(res, false);
     }
 
-    int bindTo(IPAddress &addr)
+    int bindTo(IPAddress& addr)
     {
-        return ::bind(fSocket, &addr.fAddress, addr.fAddressLength);
+        int res = ::bind(fSocket, &addr.fAddress, addr.fAddressLength);
+        if (SOCKET_ERROR == res) {
+            fLastError = WSAGetLastError();
+            return false;
+        }
+
+        return true;
     }
 
     //int bindTo(const sockaddr *addr, const int addrLen)
@@ -532,6 +518,17 @@ public:
     // so the socket isn't lingering
     bool forceClose() {
         int result = ::closesocket(fSocket);
+        if (result != 0) {
+            fLastError = WSAGetLastError();
+            return false;
+        }
+
+        return true;
+    }
+
+    bool connect(IPAddress &addr)
+    {
+        int result = ::connect(fSocket, &addr.fAddress, addr.fAddressLength);
         if (result != 0) {
             fLastError = WSAGetLastError();
             return false;
@@ -557,7 +554,10 @@ public:
     //
     // shutdown - disable sends or receives on a socket
     // you might do this before closing a socket
-    // how == SD_SEND, SD_RECEIVE, SD_BOTH
+    // how == 
+    //   SD_SEND, 
+    //   SD_RECEIVE, 
+    //   SD_BOTH
     //
     bool shutdown(int how = SD_SEND) {
         int res = ::shutdown(fSocket, how);
@@ -569,7 +569,13 @@ public:
         return true;
     }
 
-
+    // cleanest possible way to close down a socket
+    // either client or server side
+    bool closeDown()
+    {
+        ASocket::DisconnectEx(*this);
+        return forceClose();
+    }
 
 
 
@@ -608,19 +614,129 @@ public:
     // Send to a specific address
     // The address was specified when we 
     // created the socket
-    int sendTo(const struct sockaddr *addrTo, int addrToLen, const char *buff, const int bufflen)
+    int sendTo(IPAddress &addrTo, const void *buff, const int bufflen)
     {
-        return ::sendto(fSocket, buff, bufflen, 0, addrTo, addrToLen);
+        int res = ::sendto(fSocket, (const char *)buff, bufflen, 0, &addrTo.fAddress, addrTo.fAddressLength);
+        
+        if (SOCKET_ERROR == res)
+            fLastError = WSAGetLastError();
+        
+        //printf("ASocket::sendTo: %d\n", res);
+
+        return res;
     }
 
-    int receiveFrom(struct sockaddr *addrFrom, int *addrFromLen, char *buff, int bufflen)
+    int receiveFrom(IPAddress &addrFrom, void* buff, int bufflen)
     {
-        return ::recvfrom(fSocket, buff, bufflen, 0, addrFrom, addrFromLen);
+        int res = ::recvfrom(fSocket, (char*)buff, bufflen, 0, &addrFrom.fAddress, &addrFrom.fAddressLength);
+
+        if (SOCKET_ERROR == res)
+            fLastError = WSAGetLastError();
+        
+        //printf("ASocket::receiveFrom: %d\n", res);
+
+        return res;
     }
 
 
 
+protected:
 
+        // Retrieve a pointer to an extension function
+        // These functions are implementation specific
+        // so there's no other way to gain access to them without
+        // going through ws2_32
+        static void* getExtensionFunctionPointer(GUID& funcguid)
+        {
+            ASocket s;
+            int cbInBuffer = sizeof(GUID);
+            void* lpvOutBuffer = nullptr;
+            int cbOutBuffer = sizeof(lpvOutBuffer);
+            DWORD lpcbBytesReturned = 0;
+            LPWSAOVERLAPPED lpOverlapped = nullptr;
+            LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine = nullptr;
+
+            int res = WSAIoctl(s.fSocket, SIO_GET_EXTENSION_FUNCTION_POINTER,
+                (void*)&funcguid, cbInBuffer,
+                lpvOutBuffer, cbOutBuffer,
+                &lpcbBytesReturned,
+                lpOverlapped,
+                lpCompletionRoutine);
+
+            if (res != 0)
+                return nullptr;
+
+            return lpvOutBuffer;
+        }
+
+        // Extended Accept
+        static int AcceptEx(ASocket listenSocket, ASocket acceptedSocket)
+        {
+            static LPFN_ACCEPTEX CAcceptEx = nullptr;
+
+            if (nullptr == CAcceptEx)
+            {
+                GUID g = WSAID_ACCEPTEX;
+                CAcceptEx = (LPFN_ACCEPTEX)getExtensionFunctionPointer(g);
+            }
+
+            // Call extension function
+            //lpOutputBuffer
+            DWORD    lpBytesReceived = 0;
+            void* lpOutputBuffer = nullptr;
+            DWORD dwReceiveDataLength = 0;
+            DWORD dwLocalAddressLength = 0;
+            DWORD dwRemoteAddressLength = 0;
+            DWORD lpdwBytesReceived;
+            LPOVERLAPPED lpOverlapped = nullptr;
+
+            int res = CAcceptEx(listenSocket.fSocket, acceptedSocket.fSocket,
+                lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength,
+                dwRemoteAddressLength, &lpdwBytesReceived,
+                lpOverlapped);
+
+            return res;
+        }
+
+        static int ConnectEx(ASocket s, IPAddress address)
+        {
+            LPFN_CONNECTEX CConnectEx = nullptr;
+
+            if (CConnectEx == nullptr) {
+                GUID g = WSAID_CONNECTEX;
+                CConnectEx = (LPFN_CONNECTEX)getExtensionFunctionPointer(g);
+            }
+
+            if (nullptr == CConnectEx)
+                return -1;
+
+            void* lpSendBuffer = nullptr;
+            DWORD dwSendDataLength = 0;
+            DWORD lpdwBytesSent = 0;
+            LPOVERLAPPED lpOverlapped = nullptr;
+
+            CConnectEx(s.fSocket, &address.fAddress, address.fAddressLength,
+                lpSendBuffer, dwSendDataLength,
+                &lpdwBytesSent, lpOverlapped);
+        }
+
+        static int DisconnectEx(ASocket s)
+        {
+            static LPFN_DISCONNECTEX CDisconnectEx = nullptr;
+
+            if (nullptr == DisconnectEx)
+            {
+                GUID g = WSAID_DISCONNECTEX;
+                CDisconnectEx = (LPFN_DISCONNECTEX)getExtensionFunctionPointer(g);
+            }
+
+            LPOVERLAPPED lpOverlapped = nullptr;
+            DWORD dwFlags = 0;
+            DWORD dwReserved = 0;
+            int res = CDisconnectEx(s.fSocket, lpOverlapped, dwFlags, dwReserved);
+
+            return res;
+        }
 };
 
 
@@ -633,13 +749,7 @@ class WinExSocket : public ASocket
 private:
 
 
-        // cleanest possible way to close down a socket
-        // either client or server side
-    bool closeDown()
-    {
-        //disconnect();
-        return forceClose();
-    }
+
 };
 
 class TcpSocket : public ASocket
@@ -678,4 +788,13 @@ public :
         int oneInt = 1;
         return setSocketOption(IPPROTO_TCP, TCP_NODELAY, (char*)&oneInt, sizeof(oneInt));
     }
+};
+
+class UdpSocket : public ASocket
+{
+    static const int MTU = 1500;
+    static const int IPv6_Header_Size = 40;
+    static const int UDP_Header_Size = 8;
+
+    static const int BEST_PACKET_SIZE = MTU - IPv6_Header_Size - UDP_Header_Size;   // 1452
 };

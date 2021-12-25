@@ -81,9 +81,6 @@ extern "C" {
 	APP_EXPORT void onRun();	// called for the user's app
 
 
-	APP_EXPORT void halt();
-
-
 #ifdef __cplusplus
 }
 #endif

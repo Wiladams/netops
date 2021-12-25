@@ -1,0 +1,7 @@
+﻿     Creating library D:\repos\netops\testy\Release\udpscreenbcast.lib and object D:\repos\netops\testy\Release\udpscreenbcast.exp
+  Generating code
+  16 of 221 functions ( 7.2%) were compiled, the rest were copied from previous compilation.
+    7 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  udpscreenbcast.vcxproj -> D:\repos\netops\testy\Release\udpscreenbcast.exe

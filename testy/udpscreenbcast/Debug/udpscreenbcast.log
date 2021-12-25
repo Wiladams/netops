@@ -1,0 +1,14 @@
+﻿  udpscreenbcast.cpp
+D:\repos\netops\src\binstream.h(160,52): warning C4244: 'argument': conversion from 'int64_t' to 'const size_t', possible loss of data
+D:\repos\netops\src\binstream.h(337,16): warning C4244: 'initializing': conversion from 'int64_t' to 'size_t', possible loss of data
+D:\repos\netops\src\binstream.h(356,25): warning C4018: '<': signed/unsigned mismatch
+D:\repos\netops\src\coloring.h(73,62): warning C4244: 'initializing': conversion from 'double' to 'uint32_t', possible loss of data
+D:\repos\netops\src\coloring.h(73,85): warning C4244: 'initializing': conversion from 'double' to 'uint32_t', possible loss of data
+D:\repos\netops\src\coloring.h(73,41): warning C4244: 'initializing': conversion from 'double' to 'uint32_t', possible loss of data
+D:\repos\netops\src\coloring.h(73,109): warning C4244: 'initializing': conversion from 'double' to 'uint32_t', possible loss of data
+D:\repos\netops\src\timing.h(45,21): warning C4244: 'initializing': conversion from 'double' to 'uint64_t', possible loss of data
+D:\repos\netops\src\timing.h(53,20): warning C4244: 'argument': conversion from 'double' to 'DWORD', possible loss of data
+D:\repos\netops\src\timing.h(67,54): warning C4042: 'millis': has bad storage class
+D:\repos\netops\src\timing.h(73,59): warning C4042: 'millis': has bad storage class
+D:\repos\netops\src\timing.h(82,62): warning C4042: 'millis': has bad storage class
+  udpscreenbcast.vcxproj -> D:\repos\netops\testy\Debug\udpscreenbcast.exe
